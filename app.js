@@ -1,14 +1,15 @@
+
 /* ==========================================
-   EARNOVA APP ENGINE 4.0
-   Firebase Authentication
-   Dashboard • Wallet • XP
+   EARNOVA APP ENGINE 5.0
+   Telegram Auto Authentication
+   Firebase • Dashboard • Wallet • XP
    Withdrawal • Transactions • Referral
 ========================================== */
 
 "use strict";
 
 /* ==========================================
-   1. FIREBASE CONFIGURATION
+   1. CONFIGURATION
 ========================================== */
 
 const firebaseConfig = {
@@ -18,18 +19,274 @@ const firebaseConfig = {
     storageBucket: "earnova-405c3.firebasestorage.app",
     messagingSenderId: "726094697854",
     appId: "1:726094697854:web:3432981c0adc57a9560f2f",
-    measurementId: "G-6PQS4HHX5G"
+    measurementId: "G-6PQS4HHX5XG"
 };
+
+const EARNOVA_AUTH_URL =
+    "https://earnova-auth.monowerhossan487.workers.dev/auth";
 
 let firebaseApp = null;
 let firebaseAuth = null;
 let firebaseDB = null;
 let currentFirebaseUser = null;
+let telegramUser = null;
+
+/* ==========================================
+   2. STORAGE
+========================================== */
+
+const EARNOVA_STORAGE_KEY = "earnova_player_data";
+const EARNOVA_TRANSACTION_KEY = "earnova_transactions";
+
+const defaultPlayerData = {
+    username: "Player",
+    balance: 0,
+    totalEarnings: 0,
+    xp: 0,
+    gamesPlayed: 0,
+    tasksCompleted: 0,
+    todayEarnings: 0,
+    streak: 0,
+    lastCheckin: "",
+    referralCount: 0,
+    referralEarnings: 0,
+    userId: "Player",
+    notifications: []
+};
+
+function loadPlayerData() {
+    try {
+        const saved = localStorage.getItem(EARNOVA_STORAGE_KEY);
+
+        return saved
+            ? { ...defaultPlayerData, ...JSON.parse(saved) }
+            : { ...defaultPlayerData };
+
+    } catch (error) {
+        console.error("Storage Error:", error);
+        return { ...defaultPlayerData };
+    }
+}
+
+let playerData = loadPlayerData();
+
+function savePlayerData() {
+    try {
+        localStorage.setItem(
+            EARNOVA_STORAGE_KEY,
+            JSON.stringify(playerData)
+        );
+    } catch (error) {
+        console.error("Save Error:", error);
+    }
+}
+
+function loadTransactions() {
+    try {
+        const saved = localStorage.getItem(EARNOVA_TRANSACTION_KEY);
+        return saved ? JSON.parse(saved) : [];
+    } catch (error) {
+        return [];
+    }
+}
+
+let transactions = loadTransactions();
+
+function saveTransactions() {
+    try {
+        localStorage.setItem(
+            EARNOVA_TRANSACTION_KEY,
+            JSON.stringify(transactions)
+        );
+    } catch (error) {
+        console.error("Transaction Save Error:", error);
+    }
+}
+
+/* ==========================================
+   3. COMMON UTILITIES
+========================================== */
+
+function formatMoney(amount) {
+    return "৳" + Number(amount || 0).toFixed(2);
+}
+
+function getTodayDate() {
+    const now = new Date();
+
+    return [
+        now.getFullYear(),
+        String(now.getMonth() + 1).padStart(2, "0"),
+        String(now.getDate()).padStart(2, "0")
+    ].join("-");
+}
+
+function showNotification(message) {
+    alert(message);
+}
+
+function escapeHTML(value) {
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+/* ==========================================
+   4. AUTHENTICATION SCREEN
+========================================== */
+
+function createAuthScreen() {
+    if (document.getElementById("earnovaAuthScreen")) return;
+
+    const screen = document.createElement("div");
+    screen.id = "earnovaAuthScreen";
+
+    screen.innerHTML = `
+        <div class="earnova-loading-card">
+            <div class="earnova-loading-logo">E</div>
+            <h2>EARNOVA</h2>
+            <p id="earnovaAuthStatus">Connecting to Telegram...</p>
+            <div class="earnova-loader"></div>
+        </div>
+    `;
+
+    document.body.appendChild(screen);
+
+    const style = document.createElement("style");
+
+    style.textContent = `
+        #earnovaAuthScreen {
+            position: fixed;
+            inset: 0;
+            z-index: 9999999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: #06100b;
+            color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+
+        .earnova-loading-card {
+            width: 100%;
+            max-width: 360px;
+            padding: 35px 25px;
+            border-radius: 22px;
+            background: #0d1b13;
+            border: 1px solid #1d4430;
+        }
+
+        .earnova-loading-logo {
+            width: 65px;
+            height: 65px;
+            margin: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 19px;
+            background: #16a34a;
+            font-size: 35px;
+            font-weight: bold;
+        }
+
+        .earnova-loading-card h2 {
+            color: #4ade80;
+            letter-spacing: 3px;
+            margin: 18px 0 10px;
+        }
+
+        .earnova-loading-card p {
+            color: #a7b9ad;
+            font-size: 14px;
+            overflow-wrap: anywhere;
+        }
+
+        .earnova-loader {
+            width: 28px;
+            height: 28px;
+            margin: 22px auto 0;
+            border: 3px solid #244532;
+            border-top-color: #4ade80;
+            border-radius: 50%;
+            animation: earnovaSpin .8s linear infinite;
+        }
+
+        @keyframes earnovaSpin {
+            to { transform: rotate(360deg); }
+        }
+
+        .earnova-auth-error {
+            color: #ff7777 !important;
+            line-height: 1.6;
+        }
+
+        .earnova-retry-btn {
+            margin-top: 15px;
+            padding: 12px 22px;
+            background: #16a34a;
+            border: 0;
+            border-radius: 9px;
+            color: white;
+            font-weight: bold;
+        }
+    `;
+
+    document.head.appendChild(style);
+}
+
+function setAuthStatus(message, isError = false) {
+    const status = document.getElementById("earnovaAuthStatus");
+
+    if (status) {
+        status.textContent = message;
+        status.className = isError ? "earnova-auth-error" : "";
+    }
+}
+
+function showAuthError(message) {
+    setAuthStatus(message, true);
+
+    const card = document.querySelector(".earnova-loading-card");
+
+    if (card && !document.getElementById("earnovaRetryBtn")) {
+        const button = document.createElement("button");
+
+        button.id = "earnovaRetryBtn";
+        button.className = "earnova-retry-btn";
+        button.textContent = "Try Again";
+
+        button.onclick = () => {
+            location.reload();
+        };
+
+        card.appendChild(button);
+    }
+
+    const loader = document.querySelector(".earnova-loader");
+
+    if (loader) loader.style.display = "none";
+}
+
+function hideAuthScreen() {
+    const screen = document.getElementById("earnovaAuthScreen");
+
+    if (screen) screen.style.display = "none";
+}
+
+/* ==========================================
+   5. FIREBASE SDK
+========================================== */
 
 function loadFirebaseSDK() {
     return new Promise((resolve, reject) => {
 
-        if (window.firebase && window.firebase.auth) {
+        if (window.firebase && window.firebase.auth &&
+            window.firebase.firestore) {
             resolve();
             return;
         }
@@ -50,6 +307,7 @@ function loadFirebaseSDK() {
 
             const script = document.createElement("script");
             script.src = scripts[index];
+
             script.onload = () => {
                 index++;
                 loadNext();
@@ -67,675 +325,204 @@ function loadFirebaseSDK() {
 }
 
 async function initializeFirebase() {
-    try {
+    await loadFirebaseSDK();
 
-        await loadFirebaseSDK();
-
+    if (!firebase.apps.length) {
         firebaseApp = firebase.initializeApp(firebaseConfig);
-        firebaseAuth = firebase.auth();
-        firebaseDB = firebase.firestore();
-
-        console.log("Firebase Connected");
-
-        return true;
-
-    } catch (error) {
-
-        console.error("Firebase Error:", error);
-
-        return false;
-    }
-}
-
-/* ==========================================
-   2. AUTHENTICATION UI
-========================================== */
-
-function createAuthUI() {
-
-    if (document.getElementById("earnovaAuthScreen")) {
-        return;
-    }
-
-    const authScreen = document.createElement("div");
-
-    authScreen.id = "earnovaAuthScreen";
-
-    authScreen.innerHTML = `
-        <div class="earnova-auth-card">
-
-            <div class="earnova-auth-logo">
-                <div class="earnova-auth-icon">E</div>
-                <h1>EARNOVA</h1>
-                <p>Earn • Play • Grow</p>
-            </div>
-
-            <div class="earnova-auth-tabs">
-                <button id="authLoginTab" class="active">
-                    Login
-                </button>
-
-                <button id="authSignupTab">
-                    Sign Up
-                </button>
-            </div>
-
-            <form id="earnovaAuthForm">
-
-                <div id="authNameField" style="display:none">
-                    <label>Full Name</label>
-
-                    <input
-                        type="text"
-                        id="authName"
-                        placeholder="Enter your name"
-                    >
-                </div>
-
-                <label>Email Address</label>
-
-                <input
-                    type="email"
-                    id="authEmail"
-                    placeholder="Enter your email"
-                    required
-                >
-
-                <label>Password</label>
-
-                <input
-                    type="password"
-                    id="authPassword"
-                    placeholder="Enter password"
-                    minlength="6"
-                    required
-                >
-
-                <button
-                    type="submit"
-                    id="authSubmitBtn"
-                    class="earnova-auth-submit"
-                >
-                    Login
-                </button>
-
-            </form>
-
-            <button
-                id="authForgotPassword"
-                class="earnova-forgot"
-            >
-                Forgot Password?
-            </button>
-
-            <div id="authMessage"></div>
-
-            <div class="earnova-auth-footer">
-                Secure account powered by Firebase
-            </div>
-
-        </div>
-    `;
-
-    document.body.appendChild(authScreen);
-
-    const style = document.createElement("style");
-
-    style.textContent = `
-        #earnovaAuthScreen {
-            position: fixed;
-            inset: 0;
-            z-index: 999999;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            background: #06100b;
-            overflow-y: auto;
-        }
-
-        .earnova-auth-card {
-            width: 100%;
-            max-width: 420px;
-            padding: 28px;
-            border-radius: 22px;
-            background: #0d1b13;
-            border: 1px solid #1d4430;
-            box-shadow: 0 20px 60px rgba(0,0,0,.5);
-            color: white;
-            font-family: Arial, sans-serif;
-        }
-
-        .earnova-auth-logo {
-            text-align: center;
-            margin-bottom: 25px;
-        }
-
-        .earnova-auth-icon {
-            width: 60px;
-            height: 60px;
-            margin: auto;
-            border-radius: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #16a34a;
-            color: white;
-            font-size: 32px;
-            font-weight: bold;
-        }
-
-        .earnova-auth-logo h1 {
-            margin: 15px 0 5px;
-            color: #4ade80;
-            letter-spacing: 3px;
-        }
-
-        .earnova-auth-logo p {
-            color: #8da99a;
-            font-size: 13px;
-        }
-
-        .earnova-auth-tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        .earnova-auth-tabs button {
-            flex: 1;
-            padding: 12px;
-            border: 1px solid #254735;
-            background: #14251b;
-            color: white;
-            border-radius: 10px;
-            cursor: pointer;
-        }
-
-        .earnova-auth-tabs button.active {
-            background: #16a34a;
-            border-color: #16a34a;
-        }
-
-        .earnova-auth-card label {
-            display: block;
-            margin: 14px 0 7px;
-            color: #b6c8bc;
-            font-size: 13px;
-        }
-
-        .earnova-auth-card input {
-            box-sizing: border-box;
-            width: 100%;
-            padding: 14px;
-            border: 1px solid #294536;
-            background: #07130c;
-            color: white;
-            border-radius: 10px;
-            outline: none;
-        }
-
-        .earnova-auth-card input:focus {
-            border-color: #4ade80;
-        }
-
-        .earnova-auth-submit {
-            width: 100%;
-            margin-top: 20px;
-            padding: 14px;
-            border: none;
-            border-radius: 10px;
-            background: #16a34a;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        .earnova-auth-submit:disabled {
-            opacity: .6;
-        }
-
-        .earnova-forgot {
-            width: 100%;
-            margin-top: 15px;
-            background: transparent;
-            color: #4ade80;
-            border: none;
-            cursor: pointer;
-        }
-
-        #authMessage {
-            margin-top: 15px;
-            font-size: 13px;
-            text-align: center;
-            overflow-wrap: anywhere;
-        }
-
-        .earnova-auth-footer {
-            margin-top: 20px;
-            text-align: center;
-            color: #718679;
-            font-size: 11px;
-        }
-    `;
-
-    document.head.appendChild(style);
-
-    setupAuthEvents();
-}
-
-let authMode = "login";
-
-function setAuthMode(mode) {
-
-    authMode = mode;
-
-    const loginTab = document.getElementById("authLoginTab");
-    const signupTab = document.getElementById("authSignupTab");
-
-    const nameField = document.getElementById("authNameField");
-    const submitButton = document.getElementById("authSubmitBtn");
-
-    if (mode === "signup") {
-
-        signupTab.classList.add("active");
-        loginTab.classList.remove("active");
-
-        nameField.style.display = "block";
-
-        submitButton.textContent = "Create Account";
-
     } else {
-
-        loginTab.classList.add("active");
-        signupTab.classList.remove("active");
-
-        nameField.style.display = "none";
-
-        submitButton.textContent = "Login";
+        firebaseApp = firebase.app();
     }
 
-    document.getElementById("authMessage").textContent = "";
-}
+    firebaseAuth = firebase.auth();
+    firebaseDB = firebase.firestore();
 
-function authMessage(message, color = "#4ade80") {
-
-    const element = document.getElementById("authMessage");
-
-    if (!element) return;
-
-    element.textContent = message;
-    element.style.color = color;
-}
-
-function setupAuthEvents() {
-
-    document.getElementById("authLoginTab")
-        .addEventListener("click", () => setAuthMode("login"));
-
-    document.getElementById("authSignupTab")
-        .addEventListener("click", () => setAuthMode("signup"));
-
-    document.getElementById("earnovaAuthForm")
-        .addEventListener("submit", async function(event) {
-
-            event.preventDefault();
-
-            if (!firebaseAuth) {
-                authMessage("Firebase is not connected.", "#ff7070");
-                return;
-            }
-
-            const name = document.getElementById("authName")
-                .value.trim();
-
-            const email = document.getElementById("authEmail")
-                .value.trim();
-
-            const password = document.getElementById("authPassword")
-                .value;
-
-            const submitButton =
-                document.getElementById("authSubmitBtn");
-
-            submitButton.disabled = true;
-
-            authMessage("Please wait...", "#facc15");
-
-            try {
-
-                if (authMode === "signup") {
-
-                    if (name.length < 2) {
-                        throw new Error("Please enter your full name.");
-                    }
-
-                    const result =
-                        await firebaseAuth.createUserWithEmailAndPassword(
-                            email,
-                            password
-                        );
-
-                    await result.user.updateProfile({
-                        displayName: name
-                    });
-
-                    await createFirebaseUserProfile(result.user, name);
-
-                    authMessage("Account created successfully!");
-
-                } else {
-
-                    await firebaseAuth.signInWithEmailAndPassword(
-                        email,
-                        password
-                    );
-
-                    authMessage("Login successful!");
-                }
-
-            } catch (error) {
-
-                console.error("Authentication Error:", error);
-
-                authMessage(
-                    getAuthErrorMessage(error),
-                    "#ff7070"
-                );
-
-            } finally {
-
-                submitButton.disabled = false;
-            }
-
-        });
-
-    document.getElementById("authForgotPassword")
-        .addEventListener("click", async function() {
-
-            const email = document.getElementById("authEmail").value.trim();
-
-            if (!email) {
-                authMessage("Enter your email address first.", "#ff7070");
-                return;
-            }
-
-            try {
-
-                await firebaseAuth.sendPasswordResetEmail(email);
-
-                authMessage("Password reset email sent!");
-
-            } catch (error) {
-
-                authMessage(
-                    getAuthErrorMessage(error),
-                    "#ff7070"
-                );
-            }
-        });
-}
-
-function getAuthErrorMessage(error) {
-
-    const messages = {
-        "auth/email-already-in-use":
-            "This email already has an account.",
-
-        "auth/invalid-email":
-            "Please enter a valid email.",
-
-        "auth/weak-password":
-            "Password must contain at least 6 characters.",
-
-        "auth/user-not-found":
-            "Account not found.",
-
-        "auth/wrong-password":
-            "Incorrect password.",
-
-        "auth/invalid-credential":
-            "Incorrect email or password.",
-
-        "auth/too-many-requests":
-            "Too many attempts. Try again later.",
-
-        "auth/network-request-failed":
-            "Internet connection problem.",
-
-        "auth/operation-not-allowed":
-            "Email/Password authentication is not enabled."
-    };
-
-    return messages[error.code] || error.message;
+    console.log("Firebase Connected");
 }
 
 /* ==========================================
-   3. FIREBASE USER PROFILE
+   6. TELEGRAM AUTHENTICATION
 ========================================== */
 
-async function createFirebaseUserProfile(user, name) {
+async function authenticateWithTelegram() {
 
-    if (!firebaseDB || !user) return;
+    const tg = window.Telegram && window.Telegram.WebApp;
 
-    const profile = {
-        uid: user.uid,
-        name: name || user.displayName || "Player",
-        email: user.email || "",
-        createdAt: new Date().toISOString()
-    };
-
-    try {
-
-        await firebaseDB
-            .collection("users")
-            .doc(user.uid)
-            .set(profile);
-
-        console.log("Firebase Profile Created");
-
-    } catch (error) {
-
-        console.warn(
-            "Profile not saved. Firestore Rules may need updating:",
-            error
+    if (!tg) {
+        throw new Error(
+            "Telegram SDK not found. Open EARNOVA from Telegram."
         );
     }
+
+    tg.ready();
+    tg.expand();
+
+    const initData = tg.initData;
+
+    if (!initData) {
+        throw new Error(
+            "Telegram authentication data missing. Open EARNOVA using the Telegram bot menu."
+        );
+    }
+
+    setAuthStatus("Verifying your Telegram account...");
+
+    const response = await fetch(EARNOVA_AUTH_URL, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            initData: initData
+        })
+    });
+
+    let result;
+
+    try {
+        result = await response.json();
+    } catch (error) {
+        throw new Error("Invalid authentication server response.");
+    }
+
+    if (!response.ok) {
+        throw new Error(
+            result.error || "Telegram authentication failed."
+        );
+    }
+
+    if (!result.customToken || !result.user || !result.user.id) {
+        throw new Error("Authentication response is incomplete.");
+    }
+
+    telegramUser = result.user;
+
+    setAuthStatus("Connecting your EARNOVA account...");
+
+    const credential = await firebaseAuth.signInWithCustomToken(
+        result.customToken
+    );
+
+    currentFirebaseUser = credential.user;
+
+    if (!currentFirebaseUser) {
+        throw new Error("Firebase authentication failed.");
+    }
+
+    const expectedUID = "tg_" + String(result.user.id);
+
+    if (currentFirebaseUser.uid !== expectedUID) {
+        await firebaseAuth.signOut();
+        throw new Error("Telegram account verification mismatch.");
+    }
+
+    return result.user;
 }
+
+/* ==========================================
+   7. FIREBASE USER PROFILE
+========================================== */
 
 async function loadFirebaseUserProfile(user) {
 
     if (!firebaseDB || !user) return;
 
-    try {
+    const docRef = firebaseDB
+        .collection("users")
+        .doc(user.uid);
 
-        const doc = await firebaseDB
-            .collection("users")
-            .doc(user.uid)
-            .get();
+    try {
+        const doc = await docRef.get();
 
         if (doc.exists) {
-
             const profile = doc.data();
 
-            if (profile.name) {
-                playerData.username = profile.name;
-            }
+            playerData.username =
+                profile.name ||
+                telegramUser.firstName ||
+                "Player";
 
         } else {
+            const name =
+                telegramUser.firstName || "Player";
 
-            await createFirebaseUserProfile(
-                user,
-                user.displayName || "Player"
-            );
+            const profile = {
+                uid: user.uid,
+                name: name,
+                email: "",
+                createdAt: new Date().toISOString()
+            };
 
-            playerData.username =
-                user.displayName || "Player";
+            try {
+                await docRef.set(profile);
+            } catch (writeError) {
+                console.warn(
+                    "Profile creation unavailable:",
+                    writeError
+                );
+            }
+
+            playerData.username = name;
         }
 
-        playerData.userId = user.uid;
-
-        savePlayerData();
-        updateDashboard();
-
     } catch (error) {
-
         console.warn("Profile loading error:", error);
+
+        playerData.username =
+            telegramUser.firstName || "Player";
     }
+
+    playerData.userId = String(telegramUser.id);
+
+    savePlayerData();
+    updateDashboard();
 }
 
 /* ==========================================
-   4. AUTH STATE
+   8. AUTHENTICATION START
 ========================================== */
 
-function setupFirebaseAuthState() {
+async function startFirebaseSystem() {
 
-    firebaseAuth.onAuthStateChanged(async function(user) {
+    createAuthScreen();
 
-        currentFirebaseUser = user;
+    try {
+        setAuthStatus("Connecting to Firebase...");
 
-        const authScreen =
-            document.getElementById("earnovaAuthScreen");
+        await initializeFirebase();
 
-        if (user) {
+        await authenticateWithTelegram();
 
-            if (authScreen) {
-                authScreen.style.display = "none";
-            }
+        await loadFirebaseUserProfile(currentFirebaseUser);
 
-            await loadFirebaseUserProfile(user);
+        setAuthStatus("EARNOVA is ready...");
 
-            console.log(
-                "Authenticated User:",
-                user.uid
-            );
+        initializeEarnova();
 
-        } else {
+        hideAuthScreen();
 
-            if (authScreen) {
-                authScreen.style.display = "flex";
-            }
+        console.log(
+            "EARNOVA Telegram Authentication Successful:",
+            currentFirebaseUser.uid
+        );
 
-            console.log("No authenticated user");
-        }
+    } catch (error) {
+        console.error("EARNOVA Authentication Error:", error);
 
-    });
+        showAuthError(
+            error.message || "Authentication failed."
+        );
+    }
 }
 
 async function logoutEarnova() {
-
-    if (!firebaseAuth) return;
-
-    try {
-
-        await firebaseAuth.signOut();
-
-        showNotification("Logged out successfully.");
-
-    } catch (error) {
-
-        showNotification("Logout failed.");
-    }
+    showNotification(
+        "To use EARNOVA, reopen it from your Telegram bot."
+    );
 }
 
 /* ==========================================
-   5. STORAGE SYSTEM
+   9. TRANSACTION SYSTEM
 ========================================== */
-
-const EARNOVA_STORAGE_KEY = "earnova_player_data";
-const EARNOVA_TRANSACTION_KEY = "earnova_transactions";
-
-const defaultPlayerData = {
-    username: "Player",
-    balance: 0,
-    totalEarnings: 0,
-    xp: 0,
-    gamesPlayed: 0,
-    tasksCompleted: 0,
-    todayEarnings: 0,
-    streak: 0,
-    lastCheckin: "",
-    referralCount: 0,
-    referralEarnings: 0,
-    userId: "EV-" + Math.floor(100000 + Math.random() * 900000),
-    notifications: []
-};
-
-function loadPlayerData() {
-
-    try {
-
-        const saved = localStorage.getItem(EARNOVA_STORAGE_KEY);
-
-        if (saved) {
-
-            return {
-                ...defaultPlayerData,
-                ...JSON.parse(saved)
-            };
-        }
-
-        return { ...defaultPlayerData };
-
-    } catch (error) {
-
-        console.error("Storage Error:", error);
-
-        return { ...defaultPlayerData };
-    }
-}
-
-let playerData = loadPlayerData();
-
-function savePlayerData() {
-
-    try {
-
-        localStorage.setItem(
-            EARNOVA_STORAGE_KEY,
-            JSON.stringify(playerData)
-        );
-
-    } catch (error) {
-
-        console.error("Save Error:", error);
-    }
-}
-
-/* ==========================================
-   6. TRANSACTION STORAGE
-========================================== */
-
-function loadTransactions() {
-
-    try {
-
-        const saved = localStorage.getItem(EARNOVA_TRANSACTION_KEY);
-
-        return saved ? JSON.parse(saved) : [];
-
-    } catch (error) {
-
-        return [];
-    }
-}
-
-let transactions = loadTransactions();
-
-function saveTransactions() {
-
-    try {
-
-        localStorage.setItem(
-            EARNOVA_TRANSACTION_KEY,
-            JSON.stringify(transactions)
-        );
-
-    } catch (error) {
-
-        console.error("Transaction Save Error:", error);
-    }
-}
 
 function createTransaction(
     type,
@@ -743,13 +530,12 @@ function createTransaction(
     details,
     status = "Completed"
 ) {
-
     const transaction = {
         id: "TX-" + Date.now(),
-        type,
+        type: type,
         amount: Number(amount),
-        details,
-        status,
+        details: details,
+        status: status,
         date: new Date().toLocaleString(),
         timestamp: Date.now()
     };
@@ -766,30 +552,10 @@ function createTransaction(
 }
 
 /* ==========================================
-   7. UTILITY FUNCTIONS
+   10. XP SYSTEM
 ========================================== */
 
-function formatMoney(amount) {
-    return "৳" + Number(amount || 0).toFixed(2);
-}
-
-function getTodayDate() {
-
-    const now = new Date();
-
-    return [
-        now.getFullYear(),
-        String(now.getMonth() + 1).padStart(2, "0"),
-        String(now.getDate()).padStart(2, "0")
-    ].join("-");
-}
-
-function showNotification(message) {
-    alert(message);
-}
-
 function addXP(amount) {
-
     amount = Number(amount) || 0;
 
     playerData.xp += amount;
@@ -799,7 +565,7 @@ function addXP(amount) {
 }
 
 /* ==========================================
-   8. DEMO EARNINGS
+   11. DEMO EARNINGS
 ========================================== */
 
 function addDemoBalance(amount, source = "Reward") {
@@ -828,7 +594,7 @@ function addDemoBalance(amount, source = "Reward") {
 }
 
 /* ==========================================
-   9. DASHBOARD
+   12. DASHBOARD
 ========================================== */
 
 function updateDashboard() {
@@ -849,73 +615,52 @@ function updateDashboard() {
         totalEarnings: document.getElementById("totalEarnings")
     };
 
-    if (elements.balance) {
-        elements.balance.textContent =
-            formatMoney(playerData.balance);
-    }
+    if (elements.balance)
+        elements.balance.textContent = formatMoney(playerData.balance);
 
-    if (elements.walletBalance) {
-        elements.walletBalance.textContent =
-            formatMoney(playerData.balance);
-    }
+    if (elements.walletBalance)
+        elements.walletBalance.textContent = formatMoney(playerData.balance);
 
-    if (elements.xp) {
+    if (elements.xp)
         elements.xp.textContent = playerData.xp + " XP";
-    }
 
-    if (elements.games) {
+    if (elements.games)
         elements.games.textContent = playerData.gamesPlayed;
-    }
 
-    if (elements.tasks) {
+    if (elements.tasks)
         elements.tasks.textContent = playerData.tasksCompleted;
-    }
 
-    if (elements.earnings) {
-        elements.earnings.textContent =
-            formatMoney(playerData.todayEarnings);
-    }
+    if (elements.earnings)
+        elements.earnings.textContent = formatMoney(playerData.todayEarnings);
 
-    if (elements.streak) {
-        elements.streak.textContent =
-            playerData.streak + " Days";
-    }
+    if (elements.streak)
+        elements.streak.textContent = playerData.streak + " Days";
 
-    if (elements.referralCount) {
-        elements.referralCount.textContent =
-            playerData.referralCount;
-    }
+    if (elements.referralCount)
+        elements.referralCount.textContent = playerData.referralCount;
 
-    if (elements.referralEarnings) {
+    if (elements.referralEarnings)
         elements.referralEarnings.textContent =
             formatMoney(playerData.referralEarnings);
-    }
 
-    if (elements.totalEarnings) {
+    if (elements.totalEarnings)
         elements.totalEarnings.textContent =
             formatMoney(playerData.totalEarnings);
-    }
 
-    if (elements.username) {
-        elements.username.textContent =
-            playerData.username;
-    }
+    if (elements.username)
+        elements.username.textContent = playerData.username;
 
-    if (elements.profileName) {
-        elements.profileName.textContent =
-            playerData.username;
-    }
+    if (elements.profileName)
+        elements.profileName.textContent = playerData.username;
 
-    if (elements.profileId) {
-        elements.profileId.textContent =
-            "User ID: " + playerData.userId;
-    }
+    if (elements.profileId)
+        elements.profileId.textContent = "User ID: " + playerData.userId;
 
     updateWithdrawBalance();
 }
 
 /* ==========================================
-   10. NAVIGATION
+   13. NAVIGATION
 ========================================== */
 
 const pageMap = {
@@ -943,8 +688,7 @@ function showPage(pageName) {
         section.classList.remove("active");
     });
 
-    const targetSection =
-        document.getElementById(sectionId);
+    const targetSection = document.getElementById(sectionId);
 
     if (targetSection) {
         targetSection.classList.add("active");
@@ -969,18 +713,18 @@ function showPage(pageName) {
 }
 
 document.querySelectorAll("[data-page]").forEach(button => {
-
     button.addEventListener("click", function() {
-
         showPage(this.dataset.page);
-
     });
-
 });
 
 /* ==========================================
-   11. REFERRAL
+   14. REFERRAL
 ========================================== */
+
+function getReferralLink() {
+    return "EARNOVA Referral ID: " + playerData.userId;
+}
 
 const copyReferralBtn =
     document.getElementById("copyReferralBtn");
@@ -988,59 +732,44 @@ const copyReferralBtn =
 const referralLinkElement =
     document.getElementById("referralLink");
 
-function getReferralLink() {
-    return "EARNOVA Referral ID: " + playerData.userId;
-}
-
 if (referralLinkElement) {
     referralLinkElement.textContent = getReferralLink();
 }
 
 if (copyReferralBtn) {
-
     copyReferralBtn.addEventListener("click", async function() {
 
         const link = getReferralLink();
 
         try {
-
             await navigator.clipboard.writeText(link);
-
-            showNotification("📋 Referral ID copied!");
-
+            showNotification("Referral ID copied!");
         } catch (error) {
-
             showNotification(link);
         }
-
     });
 }
 
 /* ==========================================
-   12. NOTIFICATIONS
+   15. NOTIFICATIONS
 ========================================== */
 
 const notificationBtn =
     document.getElementById("notificationBtn");
 
 if (notificationBtn) {
-
     notificationBtn.addEventListener("click", function() {
-
         showNotification(
-            "🔔 EARNOVA Notifications\n\n" +
-            "You are all caught up!"
+            "EARNOVA Notifications\n\nYou are all caught up!"
         );
-
     });
 }
 
 /* ==========================================
-   13. WALLET
+   16. WALLET
 ========================================== */
 
 function getWalletSummary() {
-
     return {
         balance: playerData.balance,
         totalEarnings: playerData.totalEarnings,
@@ -1073,55 +802,31 @@ function updateWithdrawBalance() {
 }
 
 /* ==========================================
-   14. WITHDRAWAL INTERFACE
+   17. WITHDRAWAL INTERFACE
 ========================================== */
 
-const withdrawBtn =
-    document.getElementById("withdrawBtn");
-
-const withdrawPanel =
-    document.getElementById("withdrawPanel");
-
-const historyPanel =
-    document.getElementById("historyPanel");
-
-const closeWithdrawBtn =
-    document.getElementById("closeWithdrawBtn");
-
-const closeHistoryBtn =
-    document.getElementById("closeHistoryBtn");
-
-const withdrawAmountInput =
-    document.getElementById("withdrawAmount");
-
-const withdrawAccountInput =
-    document.getElementById("withdrawAccount");
-
+const withdrawBtn = document.getElementById("withdrawBtn");
+const withdrawPanel = document.getElementById("withdrawPanel");
+const historyPanel = document.getElementById("historyPanel");
+const closeWithdrawBtn = document.getElementById("closeWithdrawBtn");
+const closeHistoryBtn = document.getElementById("closeHistoryBtn");
+const withdrawAmountInput = document.getElementById("withdrawAmount");
+const withdrawAccountInput = document.getElementById("withdrawAccount");
 const selectedWithdrawMethodInput =
     document.getElementById("selectedWithdrawMethod");
-
-const submitWithdrawBtn =
-    document.getElementById("submitWithdrawBtn");
+const submitWithdrawBtn = document.getElementById("submitWithdrawBtn");
 
 function closeWalletPanels() {
-
-    if (withdrawPanel) {
-        withdrawPanel.style.display = "none";
-    }
-
-    if (historyPanel) {
-        historyPanel.style.display = "none";
-    }
+    if (withdrawPanel) withdrawPanel.style.display = "none";
+    if (historyPanel) historyPanel.style.display = "none";
 }
 
 function openWithdrawPanel() {
-
     closeWalletPanels();
 
     if (!withdrawPanel) return;
 
     withdrawPanel.style.display = "block";
-
     updateWithdrawBalance();
 
     withdrawPanel.scrollIntoView({
@@ -1131,13 +836,11 @@ function openWithdrawPanel() {
 }
 
 function openHistoryPanel() {
-
     closeWalletPanels();
 
     if (!historyPanel) return;
 
     historyPanel.style.display = "block";
-
     renderTransactionHistory();
 
     historyPanel.scrollIntoView({
@@ -1147,35 +850,23 @@ function openHistoryPanel() {
 }
 
 if (withdrawBtn) {
-
-    withdrawBtn.addEventListener("click", function() {
-        openWithdrawPanel();
-    });
-
+    withdrawBtn.addEventListener("click", openWithdrawPanel);
 }
 
 if (closeWithdrawBtn) {
-
-    closeWithdrawBtn.addEventListener("click", function() {
-
-        withdrawPanel.style.display = "none";
-
+    closeWithdrawBtn.addEventListener("click", () => {
+        if (withdrawPanel) withdrawPanel.style.display = "none";
     });
-
 }
 
 if (closeHistoryBtn) {
-
-    closeHistoryBtn.addEventListener("click", function() {
-
-        historyPanel.style.display = "none";
-
+    closeHistoryBtn.addEventListener("click", () => {
+        if (historyPanel) historyPanel.style.display = "none";
     });
-
 }
 
 /* ==========================================
-   15. PAYMENT METHOD
+   18. PAYMENT METHOD
 ========================================== */
 
 const withdrawMethodButtons =
@@ -1198,36 +889,27 @@ withdrawMethodButtons.forEach(button => {
         }
 
         if (withdrawAccountInput) {
-
             if (method === "USDT") {
-
                 withdrawAccountInput.placeholder =
                     "Enter USDT wallet address";
-
             } else if (method === "bKash") {
-
                 withdrawAccountInput.placeholder =
                     "Enter bKash number";
-
             } else {
-
                 withdrawAccountInput.placeholder =
                     "Enter Nagad number";
             }
         }
-
     });
-
 });
 
 /* ==========================================
-   16. WITHDRAWAL VALIDATION
+   19. WITHDRAWAL VALIDATION
 ========================================== */
 
 function validateWithdrawal(amount, method, account) {
 
     if (!Number.isFinite(amount) || amount <= 0) {
-
         return {
             valid: false,
             message: "Please enter a valid withdrawal amount."
@@ -1235,7 +917,6 @@ function validateWithdrawal(amount, method, account) {
     }
 
     if (amount < 50) {
-
         return {
             valid: false,
             message: "Minimum withdrawal amount is ৳50."
@@ -1243,18 +924,14 @@ function validateWithdrawal(amount, method, account) {
     }
 
     if (amount > playerData.balance) {
-
         return {
             valid: false,
-            message:
-                "Insufficient Balance!\n\n" +
-                "Available: " +
+            message: "Insufficient Balance! Available: " +
                 formatMoney(playerData.balance)
         };
     }
 
     if (!method) {
-
         return {
             valid: false,
             message: "Please select a payment method."
@@ -1262,21 +939,17 @@ function validateWithdrawal(amount, method, account) {
     }
 
     if (!account || account.trim().length < 5) {
-
         return {
             valid: false,
             message: "Please enter a valid payment account."
         };
     }
 
-    return {
-        valid: true,
-        message: ""
-    };
+    return { valid: true, message: "" };
 }
 
 /* ==========================================
-   17. WITHDRAWAL SUBMISSION
+   20. WITHDRAWAL SUBMISSION
 ========================================== */
 
 if (submitWithdrawBtn) {
@@ -1284,7 +957,7 @@ if (submitWithdrawBtn) {
     submitWithdrawBtn.addEventListener("click", function() {
 
         const amount = Number(
-            withdrawAmountInput.value
+            withdrawAmountInput ? withdrawAmountInput.value : 0
         );
 
         const method = selectedWithdrawMethodInput
@@ -1302,36 +975,19 @@ if (submitWithdrawBtn) {
         );
 
         if (!validation.valid) {
-
-            showNotification(
-                "⚠️ " + validation.message
-            );
-
+            showNotification(validation.message);
             return;
         }
 
         const confirmation = confirm(
-
             "CONFIRM WITHDRAWAL\n\n" +
             "Amount: " + formatMoney(amount) +
             "\nPayment Method: " + method +
             "\nAccount: " + account +
-            "\n\nRequest status: Pending\n\n" +
-            "This is a demo request only.\n" +
-            "No real payment will be sent."
-
+            "\n\nDEMO REQUEST ONLY.\nNo real payment will be sent."
         );
 
         if (!confirmation) return;
-
-        if (amount > playerData.balance) {
-
-            showNotification(
-                "❌ Your balance is no longer sufficient."
-            );
-
-            return;
-        }
 
         playerData.balance -= amount;
 
@@ -1345,47 +1001,25 @@ if (submitWithdrawBtn) {
         savePlayerData();
         updateDashboard();
 
-        if (withdrawAmountInput) {
-            withdrawAmountInput.value = "";
-        }
-
-        if (withdrawAccountInput) {
-            withdrawAccountInput.value = "";
-        }
+        if (withdrawAmountInput) withdrawAmountInput.value = "";
+        if (withdrawAccountInput) withdrawAccountInput.value = "";
 
         closeWalletPanels();
 
         showNotification(
-
-            "✅ Withdrawal Request Created!\n\n" +
+            "Withdrawal request created.\n\n" +
             "Amount: " + formatMoney(amount) +
-            "\nMethod: " + method +
             "\nStatus: Pending\n\n" +
-            "⚠️ DEMO ONLY\n" +
-            "No real payment was sent."
-
+            "DEMO ONLY — No real payment was sent."
         );
-
     });
-
 }
 
 /* ==========================================
-   18. TRANSACTION HISTORY
+   21. TRANSACTION HISTORY
 ========================================== */
 
-const historyBtn =
-    document.getElementById("historyBtn");
-
-function escapeHTML(value) {
-
-    return String(value)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-}
+const historyBtn = document.getElementById("historyBtn");
 
 function renderTransactionHistory() {
 
@@ -1395,7 +1029,6 @@ function renderTransactionHistory() {
     if (!transactionList) return;
 
     if (transactions.length === 0) {
-
         transactionList.innerHTML = `
             <div class="empty-state">
                 <span>📜</span>
@@ -1403,92 +1036,60 @@ function renderTransactionHistory() {
                 <p>Your transaction history will appear here.</p>
             </div>
         `;
-
         return;
     }
 
-    transactionList.innerHTML = transactions
-        .map(transaction => {
+    transactionList.innerHTML = transactions.map(transaction => {
 
-            const isWithdrawal =
-                transaction.type === "Withdrawal";
+        const isWithdrawal =
+            transaction.type === "Withdrawal";
 
-            const icon = isWithdrawal ? "💸" : "💰";
+        const icon = isWithdrawal ? "💸" : "💰";
+        const amountSign = isWithdrawal ? "-" : "+";
+        const amountClass = isWithdrawal ? "negative" : "positive";
+        const statusClass =
+            String(transaction.status).toLowerCase();
 
-            const amountSign =
-                isWithdrawal ? "-" : "+";
+        return `
+            <div class="transaction-item">
+                <div class="transaction-icon">${icon}</div>
 
-            const amountClass =
-                isWithdrawal ? "negative" : "positive";
-
-            const statusClass =
-                String(transaction.status).toLowerCase();
-
-            return `
-                <div class="transaction-item">
-
-                    <div class="transaction-icon">
-                        ${icon}
-                    </div>
-
-                    <div class="transaction-info">
-
-                        <strong>
-                            ${escapeHTML(transaction.type)}
-                        </strong>
-
-                        <p>
-                            ${escapeHTML(transaction.details)}
-                        </p>
-
-                        <small>
-                            ${escapeHTML(transaction.date)}
-                        </small>
-
-                        <span class="transaction-status ${escapeHTML(statusClass)}">
-                            ${escapeHTML(transaction.status)}
-                        </span>
-
-                    </div>
-
-                    <div class="transaction-amount ${amountClass}">
-                        ${amountSign}${formatMoney(transaction.amount)}
-                    </div>
-
+                <div class="transaction-info">
+                    <strong>${escapeHTML(transaction.type)}</strong>
+                    <p>${escapeHTML(transaction.details)}</p>
+                    <small>${escapeHTML(transaction.date)}</small>
+                    <span class="transaction-status ${escapeHTML(statusClass)}">
+                        ${escapeHTML(transaction.status)}
+                    </span>
                 </div>
-            `;
 
-        })
-        .join("");
+                <div class="transaction-amount ${amountClass}">
+                    ${amountSign}${formatMoney(transaction.amount)}
+                </div>
+            </div>
+        `;
+
+    }).join("");
 }
 
 if (historyBtn) {
-
-    historyBtn.addEventListener("click", function() {
-        openHistoryPanel();
-    });
-
+    historyBtn.addEventListener("click", openHistoryPanel);
 }
 
 /* ==========================================
-   19. GAME BUTTONS
+   22. GAME BUTTONS
 ========================================== */
 
 document.querySelectorAll(".game-btn").forEach(button => {
-
     button.addEventListener("click", function() {
-
         showNotification(
-            "🎮 Game Development\n\n" +
             "This game is currently under development."
         );
-
     });
-
 });
 
 /* ==========================================
-   20. TASK CATEGORY FILTER
+   23. TASK CATEGORY FILTER
 ========================================== */
 
 document.querySelectorAll(".category-btn").forEach(button => {
@@ -1500,18 +1101,18 @@ document.querySelectorAll(".category-btn").forEach(button => {
         });
 
         this.classList.add("active");
-
     });
-
 });
 
 /* ==========================================
-   21. EARNOVA GLOBAL API
+   24. EARNOVA GLOBAL API
 ========================================== */
 
 window.EARNOVA = {
 
-    player: playerData,
+    get player() {
+        return playerData;
+    },
 
     addXP: function(amount) {
         addXP(amount);
@@ -1538,22 +1139,16 @@ window.EARNOVA = {
     },
 
     addTaskReward: function(amount, taskName = "Task Reward") {
-
         playerData.tasksCompleted += 1;
-
         addDemoBalance(amount, taskName);
-
         savePlayerData();
         updateDashboard();
     },
 
     addReferralReward: function(amount, referralName = "Referral Reward") {
-
         playerData.referralCount += 1;
         playerData.referralEarnings += Number(amount);
-
         addDemoBalance(amount, referralName);
-
         savePlayerData();
         updateDashboard();
     },
@@ -1576,54 +1171,31 @@ window.EARNOVA = {
 
     getFirebaseUser: function() {
         return currentFirebaseUser;
-    }
+    },
 
+    getTelegramUser: function() {
+        return telegramUser;
+    }
 };
 
 /* ==========================================
-   22. INITIALIZE APP
+   25. INITIALIZE APP
 ========================================== */
 
 function initializeEarnova() {
 
     updateDashboard();
-
     renderTransactionHistory();
 
     console.log("EARNOVA App Initialized");
-    console.log("Wallet System Ready");
+    console.log("Telegram Authentication Ready");
+    console.log("Wallet Interface Ready");
     console.log("Withdrawal Interface Ready");
     console.log("Transaction History Ready");
-
-    console.log("Player Data:", playerData);
-    console.log("Transactions:", transactions);
-
 }
 
 /* ==========================================
-   23. START APP
+   26. START
 ========================================== */
-
-initializeEarnova();
-
-async function startFirebaseSystem() {
-
-    createAuthUI();
-
-    const connected = await initializeFirebase();
-
-    if (!connected) {
-
-        authMessage(
-            "Firebase connection failed. Check your internet.",
-            "#ff7070"
-        );
-
-        return;
-    }
-
-    setupFirebaseAuthState();
-
-}
 
 startFirebaseSystem();
