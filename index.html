@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#07110d">
+    <title>EARNOVA</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="app">
+
+<header class="header">
+    <div class="logo">
+        <div class="logo-icon">E</div>
+        <div class="logo-text">
+            <h1>EARNOVA</h1>
+            <span>PLAY • TASK • EARN</span>
+        </div>
+    </div>
+    <button class="notification-btn" id="notificationBtn">🔔</button>
+</header>
+
+<main id="mainContent">
+
+<!-- HOME -->
+<section id="homeSection" class="section active">
+
+    <div class="welcome">
+        <p class="welcome-label">WELCOME BACK</p>
+        <h2>Hello, <span id="username">Player</span> 👋</h2>
+        <p>Start earning with EARNOVA today.</p>
+    </div>
+
+    <div class="balance-card">
+        <div class="balance-top">
+            <span>Total Balance</span>
+            <span class="balance-status">● Active</span>
+        </div>
+        <h2 id="balance">৳0.00</h2>
+        <div class="balance-footer">
+            <span>Available Rewards</span>
+            <span id="xpDisplay">0 XP</span>
+        </div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">💰</div>
+            <p>Today's Earnings</p>
+            <h3 id="todayEarnings">৳0.00</h3>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">🎮</div>
+            <p>Games Played</p>
+            <h3 id="gamesPlayed">0</h3>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">📋</div>
+            <p>Tasks Completed</p>
+            <h3 id="tasksCompleted">0</h3>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">🔥</div>
+            <p>Daily Streak</p>
+            <h3 id="streak">0 Days</h3>
+        </div>
+    </div>
+
+    <div class="section-heading">
+        <h3>Quick Actions</h3>
+    </div>
+
+    <div class="quick-actions">
+        <button class="action-card" data-page="tasks">
+            <span>📋</span><strong>Tasks</strong>
+        </button>
+        <button class="action-card" data-page="games">
+            <span>🎮</span><strong>Games</strong>
+        </button>
+        <button class="action-card" data-page="wallet">
+            <span>💳</span><strong>Wallet</strong>
+        </button>
+        <button class="action-card" data-page="referral">
+            <span>👥</span><strong>Referral</strong>
+        </button>
+    </div>
+
+    <!-- DAILY CHECK-IN -->
+    <div class="daily-checkin-card">
+        <div class="checkin-header">
+            <div>
+                <span class="checkin-label">DAILY REWARDS</span>
+                <h3>Daily Check-in 🎁</h3>
+                <p>Come back every day to earn XP!</p>
+            </div>
+            <div class="checkin-streak">
+                <span>🔥</span>
+                <strong id="checkinStreak">0</strong>
+                <small>Day Streak</small>
+            </div>
+        </div>
+
+        <div class="checkin-week">
+            <div class="checkin-day" id="checkinDay1">
+                <span class="day-label">DAY 1</span>
+                <span class="day-icon">🎁</span>
+                <strong>10 XP</strong>
+            </div>
+            <div class="checkin-day" id="checkinDay2">
+                <span class="day-label">DAY 2</span>
+                <span class="day-icon">🎁</span>
+                <strong>15 XP</strong>
+            </div>
+            <div class="checkin-day" id="checkinDay3">
+                <span class="day-label">DAY 3</span>
+                <span class="day-icon">🎁</span>
+                <strong>20 XP</strong>
+            </div>
+            <div class="checkin-day" id="checkinDay4">
+                <span class="day-label">DAY 4</span>
+                <span class="day-icon">🎁</span>
+                <strong>25 XP</strong>
+            </div>
+            <div class="checkin-day" id="checkinDay5">
+                <span class="day-label">DAY 5</span>
+                <span class="day-icon">🎁</span>
+                <strong>30 XP</strong>
+            </div>
+            <div class="checkin-day" id="checkinDay6">
+                <span class="day-label">DAY 6</span>
+                <span class="day-icon">🎁</span>
+                <strong>40 XP</strong>
+            </div>
+            <div class="checkin-day day-seven" id="checkinDay7">
+                <span class="day-label">DAY 7</span>
+                <span class="day-icon">🏆</span>
+                <strong>50 XP</strong>
+                <small>+100 Bonus</small>
+            </div>
+        </div>
+
+        <div class="checkin-reward-info">
+            <div>
+                <span>Today's Reward</span>
+                <strong id="todayCheckinReward">10 XP</strong>
+            </div>
+            <div>
+                <span>Weekly Bonus</span>
+                <strong>100 XP</strong>
+            </div>
+        </div>
+
+        <button id="dailyRewardBtn" class="checkin-claim-btn">
+            🎁 Claim Daily Reward
+        </button>
+        <p id="checkinMessage" class="checkin-message">
+            Claim your reward and keep your streak alive!
+        </p>
+    </div>
+
+    <div class="section-heading">
+        <h3>Explore Earning</h3>
+        <span>View All</span>
+    </div>
+
+    <div class="earning-grid">
+        <div class="earning-card" data-page="tasks">
+            <span>🌐</span>
+            <h4>Micro Tasks</h4>
+            <p>Complete small tasks</p>
+        </div>
+        <div class="earning-card" data-page="surveys">
+            <span>📊</span>
+            <h4>Surveys</h4>
+            <p>Share your opinions</p>
+        </div>
+        <div class="earning-card" data-page="signup">
+            <span>📝</span>
+            <h4>Sign Up</h4>
+            <p>Registration offers</p>
+        </div>
+        <div class="earning-card" data-page="games">
+            <span>🕹️</span>
+            <h4>Game Zone</h4>
+            <p>Play games</p>
+        </div>
+        <div class="earning-card" data-page="offers">
+            <span>🚀</span>
+            <h4>CPA Offers</h4>
+            <p>Complete offers</p>
+        </div>
+        <div class="earning-card" data-page="referral">
+            <span>🤝</span>
+            <h4>Refer & Earn</h4>
+            <p>Invite friends</p>
+        </div>
+    </div>
+
+</section>
+
+<!-- TASKS -->
+<section id="tasksSection" class="section">
+    <div class="page-heading">
+        <h2>Task Center</h2>
+        <p>Complete tasks and earn rewards</p>
+    </div>
+    <div class="category-tabs">
+        <button class="category-btn active" data-category="All">All</button>
+        <button class="category-btn" data-category="Website">Website</button>
+        <button class="category-btn" data-category="Social">Social</button>
+        <button class="category-btn" data-category="Apps">Apps</button>
+    </div>
+    <div id="taskList" class="task-list">
+        <div class="empty-state">
+            <span>📋</span>
+            <h3>No Tasks Available</h3>
+            <p>New earning tasks will appear here.</p>
+        </div>
+    </div>
+</section>
+
+<!-- SURVEYS -->
+<section id="surveysSection" class="section">
+    <div class="page-heading">
+        <h2>Survey Center</h2>
+        <p>Share your opinions and earn rewards</p>
+    </div>
+    <div class="survey-categories">
+        <div class="survey-card">
+            <span>🛍️</span>
+            <h3>Product Survey</h3>
+            <p>Products and shopping</p>
+        </div>
+        <div class="survey-card">
+            <span>📱</span>
+            <h3>Technology</h3>
+            <p>Apps and technology</p>
+        </div>
+        <div class="survey-card">
+            <span>🌍</span>
+            <h3>Lifestyle</h3>
+            <p>Daily lifestyle surveys</p>
+        </div>
+        <div class="survey-card">
+            <span>📈</span>
+            <h3>Market Research</h3>
+            <p>Market research surveys</p>
+        </div>
+    </div>
+</section>
+
+<!-- SIGNUP -->
+<section id="signupSection" class="section">
+    <div class="page-heading">
+        <h2>Sign Up Offers</h2>
+        <p>Discover registration opportunities</p>
+    </div>
+    <div class="empty-state">
+        <span>📝</span>
+        <h3>Registration Offers</h3>
+        <p>Available sign-up offers will appear here.</p>
+    </div>
+</section>
+
+<!-- GAMES -->
+<section id="gamesSection" class="section">
+    <div class="page-heading">
+        <h2>Game Zone</h2>
+        <p>Play skill-based games and earn XP</p>
+    </div>
+    <div class="games-grid">
+        <div class="game-card">
+            <span>🏎️</span>
+            <h3>3D Racing</h3>
+            <p>Race to victory</p>
+            <button class="game-btn">Coming Soon</button>
+        </div>
+        <div class="game-card">
+            <span>🧩</span>
+            <h3>Brain Puzzle</h3>
+            <p>Test your brain</p>
+            <button class="game-btn">Coming Soon</button>
+        </div>
+        <div class="game-card">
+            <span>🧠</span>
+            <h3>Quiz Challenge</h3>
+            <p>Answer questions</p>
+            <button class="game-btn">Coming Soon</button>
+        </div>
+        <div class="game-card">
+            <span>🎴</span>
+            <h3>Memory Match</h3>
+            <p>Test your memory</p>
+            <button class="game-btn">Coming Soon</button>
+        </div>
+        <div class="game-card">
+            <span>🏃</span>
+            <h3>Endless Runner</h3>
+            <p>Run and avoid obstacles</p>
+            <button class="game-btn">Coming Soon</button>
+        </div>
+        <div class="game-card">
+            <span>♟️</span>
+            <h3>Strategy</h3>
+            <p>Plan your moves</p>
+            <button class="game-btn">Coming Soon</button>
+        </div>
+        <div class="game-card">
+            <span>🔤</span>
+            <h3>Word Master</h3>
+            <p>Build words</p>
+            <button class="game-btn">Coming Soon</button>
+        </div>
+        <div class="game-card">
+            <span>🧱</span>
+            <h3>Block Puzzle</h3>
+            <p>Arrange blocks</p>
+            <button class="game-btn">Coming Soon</button>
+        </div>
+        <div class="game-card">
+            <span>🔢</span>
+            <h3>Number Master</h3>
+            <p>Solve number puzzles</p>
+            <button class="game-btn">Coming Soon</button>
+        </div>
+        <div class="game-card">
+            <span>🚀</span>
+            <h3>Space Shooter</h3>
+            <p>Arcade challenge</p>
+            <button class="game-btn">Coming Soon</button>
+        </div>
+    </div>
+</section>
+
+<!-- CPA OFFERS -->
+<section id="offersSection" class="section">
+    <div class="page-heading">
+        <h2>CPA Offers</h2>
+        <p>Explore available earning opportunities</p>
+    </div>
+    <div class="empty-state">
+        <span>🚀</span>
+        <h3>No Offers Available</h3>
+        <p>New offers will be added soon.</p>
+    </div>
+</section>
+
+<!-- WALLET -->
+<section id="walletSection" class="section">
+    <div class="page-heading">
+        <h2>My Wallet</h2>
+        <p>Manage your earnings</p>
+    </div>
+    <div class="balance-card">
+        <span>Available Balance</span>
+        <h2 id="walletBalance">৳0.00</h2>
+    </div>
+    <div class="wallet-actions">
+        <button id="withdrawBtn" class="primary-btn">💸 Withdraw</button>
+        <button id="historyBtn" class="secondary-btn">📜 History</button>
+    </div>
+
+    <!-- WITHDRAW PANEL -->
+    <div id="withdrawPanel" style="display:none; margin-top:20px; padding:20px; background:#10251b; border:1px solid #1e4935; border-radius:18px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h3 style="margin:0; color:#ffffff;">💸 Withdraw Funds</h3>
+            <button id="closeWithdrawBtn" style="background:none; border:none; color:#ffffff; font-size:24px; cursor:pointer;">✕</button>
+        </div>
+        <p style="color:#9cae9f;">
+            Available Balance:
+            <strong id="withdrawAvailableBalance" style="color:#42e58c;">৳0.00</strong>
+        </p>
+        <label style="display:block; margin-bottom:8px; color:#ffffff;">Payment Method</label>
+        <div style="display:flex; gap:10px; margin-bottom:20px;">
+            <button class="withdraw-method active" data-method="bKash" style="flex:1; padding:12px; border-radius:12px; border:1px solid #1e4935; background:#163b29; color:white;">💳 bKash</button>
+            <button class="withdraw-method" data-method="Nagad" style="flex:1; padding:12px; border-radius:12px; border:1px solid #1e4935; background:#10251b; color:white;">💳 Nagad</button>
+            <button class="withdraw-method" data-method="USDT" style="flex:1; padding:12px; border-radius:12px; border:1px solid #1e4935; background:#10251b; color:white;">🪙 USDT</button>
+        </div>
+        <input type="hidden" id="selectedWithdrawMethod" value="bKash">
+        <label style="display:block; margin-bottom:8px; color:white;">Withdrawal Amount</label>
+        <input type="number" id="withdrawAmount" placeholder="Enter amount" min="50" step="1" style="width:100%; box-sizing:border-box; padding:14px; margin-bottom:18px; border-radius:12px; background:#07110d; border:1px solid #1e4935; color:white;">
+        <label style="display:block; margin-bottom:8px; color:white;">Payment Account</label>
+        <input type="text" id="withdrawAccount" placeholder="Enter bKash number" style="width:100%; box-sizing:border-box; padding:14px; margin-bottom:18px; border-radius:12px; background:#07110d; border:1px solid #1e4935; color:white;">
+        <button id="submitWithdrawBtn" class="primary-btn" style="width:100%; padding:15px;">Submit Withdrawal Request</button>
+        <p style="color:#8ba496; font-size:12px; text-align:center; margin-top:15px;">Minimum Withdrawal: ৳50</p>
+    </div>
+
+    <!-- TRANSACTION HISTORY PANEL -->
+    <div id="historyPanel" style="display:none; margin-top:20px; padding:20px; background:#10251b; border:1px solid #1e4935; border-radius:18px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h3 style="margin:0; color:white;">📜 Transaction History</h3>
+            <button id="closeHistoryBtn" style="background:none; border:none; color:white; font-size:24px; cursor:pointer;">✕</button>
+        </div>
+        <div id="transactionList"></div>
+    </div>
+
+    <div class="section-heading">
+        <h3>Payment Methods</h3>
+    </div>
+    <div class="payment-methods">
+        <div class="payment-card"><span>💳</span><strong>bKash</strong></div>
+        <div class="payment-card"><span>💳</span><strong>Nagad</strong></div>
+        <div class="payment-card"><span>🪙</span><strong>USDT</strong></div>
+    </div>
+</section>
+
+<!-- REFERRAL -->
+<section id="referralSection" class="section">
+    <div class="page-heading">
+        <h2>Refer & Earn</h2>
+        <p>Invite friends to EARNOVA</p>
+    </div>
+    <div class="referral-card">
+        <span>👥</span>
+        <h2>Invite Friends</h2>
+        <p>Share your referral link and grow your network.</p>
+        <div class="referral-link-box">
+            <span id="referralLink">Your referral link</span>
+            <button id="copyReferralBtn">📋</button>
+        </div>
+    </div>
+    <div class="stats-grid">
+        <div class="stat-card">
+            <p>Total Referrals</p>
+            <h3 id="referralCount">0</h3>
+        </div>
+        <div class="stat-card">
+            <p>Referral Earnings</p>
+            <h3 id="referralEarnings">৳0.00</h3>
+        </div>
+    </div>
+</section>
+
+<!-- PROFILE -->
+<section id="profileSection" class="section">
+    <div class="page-heading">
+        <h2>My Profile</h2>
+        <p>Manage your account</p>
+    </div>
+    <div class="profile-card">
+        <div class="profile-avatar">👤</div>
+        <h2 id="profileName">Player</h2>
+        <p id="profileId">User ID: 000000</p>
+        <span class="level-badge">LEVEL 1</span>
+    </div>
+    <div class="profile-menu">
+        <button class="profile-menu-item">👤 Edit Profile</button>
+        <button class="profile-menu-item">🏆 Achievements</button>
+        <button class="profile-menu-item">⚙️ Settings</button>
+        <button class="profile-menu-item">🛡️ Security</button>
+        <button class="profile-menu-item">📞 Support</button>
+    </div>
+</section>
+
+</main>
+
+<!-- BOTTOM NAVIGATION -->
+<nav class="bottom-nav">
+    <button class="nav-item active" data-page="home">
+        <span>🏠</span><small>Home</small>
+    </button>
+    <button class="nav-item" data-page="tasks">
+        <span>📋</span><small>Tasks</small>
+    </button>
+    <button class="nav-item" data-page="games">
+        <span>🎮</span><small>Games</small>
+    </button>
+    <button class="nav-item" data-page="wallet">
+        <span>💳</span><small>Wallet</small>
+    </button>
+    <button class="nav-item" data-page="profile">
+        <span>👤</span><small>Profile</small>
+    </button>
+</nav>
+
+</div>
+
+<!-- DAILY CHECK-IN -->
+<script>
+(function () {
+    "use strict";
+
+    const STORAGE_KEY = "earnova_daily_checkin";
+    const PLAYER_KEY = "earnova_player_data";
+    const rewards = [10, 15, 20, 25, 30, 40, 50];
+
+    function getToday() {
+        const date = new Date();
+        return [
+            date.getFullYear(),
+            String(date.getMonth() + 1).padStart(2, "0"),
+            String(date.getDate()).padStart(2, "0")
+        ].join("-");
+    }
+
+    function getYesterday() {
+        const date = new Date();
+        date.setDate(date.getDate() - 1);
+        return [
+            date.getFullYear(),
+            String(date.getMonth() + 1).padStart(2, "0"),
+            String(date.getDate()).padStart(2, "0")
+        ].join("-");
+    }
+
+    function getCheckinData() {
+        try {
+            return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
+                streak: 0,
+                lastClaim: "",
+                totalXP: 0,
+                weeklyBonusClaimed: 0
+            };
+        } catch {
+            return {
+                streak: 0,
+                lastClaim: "",
+                totalXP: 0,
+                weeklyBonusClaimed: 0
+            };
+        }
+    }
+
+    function saveCheckinData(data) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    function getPlayerData() {
+        try {
+            return JSON.parse(localStorage.getItem(PLAYER_KEY)) || { xp: 0 };
+        } catch {
+            return { xp: 0 };
+        }
+    }
+
+    function savePlayerXP(amount) {
+        const player = getPlayerData();
+        player.xp = (Number(player.xp) || 0) + amount;
+        localStorage.setItem(PLAYER_KEY, JSON.stringify(player));
+
+        if (typeof updateDashboard === "function") {
+            updateDashboard();
+        }
+
+        if (typeof updateUI === "function") {
+            updateUI();
+        }
+
+        const xpDisplay = document.getElementById("xpDisplay");
+        if (xpDisplay) {
+            xpDisplay.textContent = player.xp + " XP";
+        }
+    }
+
+    function getCurrentStreak(data) {
+        if (!data.lastClaim) return 0;
+        if (data.lastClaim === getToday()) return data.streak;
+        if (data.lastClaim === getYesterday()) return data.streak;
+        return 0;
+    }
+
+    function renderCheckin() {
+        const data = getCheckinData();
+        const today = getToday();
+        const streak = getCurrentStreak(data);
+        const claimedToday = data.lastClaim === today;
+
+        const currentDay = claimedToday
+            ? Math.max(1, Math.min(data.streak, 7))
+            : Math.max(1, Math.min(streak + 1, 7));
+
+        const streakElement = document.getElementById("checkinStreak");
+        if (streakElement) streakElement.textContent = streak;
+
+        const rewardElement = document.getElementById("todayCheckinReward");
+        if (rewardElement) rewardElement.textContent = rewards[currentDay - 1] + " XP";
+
+        for (let day = 1; day <= 7; day++) {
+            const card = document.getElementById("checkinDay" + day);
+            if (!card) continue;
+            card.classList.remove("claimed", "current");
+
+            if (claimedToday && day <= data.streak) {
+                card.classList.add("claimed");
+            } else if (!claimedToday && day === currentDay) {
+                card.classList.add("current");
+            }
+        }
+
+        const button = document.getElementById("dailyRewardBtn");
+        const message = document.getElementById("checkinMessage");
+
+        if (button) {
+            button.disabled = claimedToday;
+            button.textContent = claimedToday
+                ? "✅ Reward Claimed"
+                : "🎁 Claim " + rewards[currentDay - 1] + " XP";
+        }
+
+        if (message) {
+            message.textContent = claimedToday
+                ? "Come back tomorrow for your next reward! 🔥"
+                : "Claim your reward and keep your streak alive!";
+        }
+
+        const streakDisplay = document.getElementById("streak");
+        if (streakDisplay) streakDisplay.textContent = streak + " Days";
+    }
+
+    function claimReward() {
+        const today = getToday();
+        const data = getCheckinData();
+
+        if (data.lastClaim === today) {
+            alert("You have already claimed today's reward!");
+            return;
+        }
+
+        if (data.lastClaim === getYesterday()) {
+            data.streak++;
+        } else {
+            data.streak = 1;
+        }
+
+        if (data.streak > 7) {
+            data.streak = 1;
+        }
+
+        const day = data.streak;
+        const reward = rewards[day - 1];
+        const bonus = day === 7 ? 100 : 0;
+        const totalReward = reward + bonus;
+
+        data.lastClaim = today;
+        data.totalXP += totalReward;
+
+        if (day === 7) {
+            data.weeklyBonusClaimed++;
+        }
+
+        saveCheckinData(data);
+        savePlayerXP(totalReward);
+        renderCheckin();
+
+        alert(
+            "🎉 Daily Reward Claimed!\n\n" +
+            "Reward: " + reward + " XP\n" +
+            (bonus > 0 ? "Weekly Bonus: " + bonus + " XP\n" : "") +
+            "Total: " + totalReward + " XP"
+        );
+    }
+
+    renderCheckin();
+
+    const button = document.getElementById("dailyRewardBtn");
+    if (button) button.addEventListener("click", claimReward);
+
+    window.EARNOVA_CHECKIN = {
+        render: renderCheckin,
+        claim: claimReward
+    };
+})();
+</script>
+
+<script src="tasks.js"></script>
+<script src="memory-game.js"></script>
+<script src="cpa.js"></script>
+<script src="signup.js"></script>
+<script src="app.js"></script>
+<script src="admin.js"></script>
+
+</body>
+</html>
