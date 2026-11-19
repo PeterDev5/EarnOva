@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -251,7 +252,7 @@
     </div>
 </section>
 
-<!-- SIGNUP -->
+<!-- SIGNUP OFFERS -->
 <section id="signupSection" class="section">
     <div class="page-heading">
         <h2>Sign Up Offers</h2>
@@ -544,10 +545,6 @@
             updateDashboard();
         }
 
-        if (typeof updateUI === "function") {
-            updateUI();
-        }
-
         const xpDisplay = document.getElementById("xpDisplay");
         if (xpDisplay) {
             xpDisplay.textContent = player.xp + " XP";
@@ -664,11 +661,19 @@
 })();
 </script>
 
+<!-- OTHER APP MODULES -->
 <script src="tasks.js"></script>
 <script src="memory-game.js"></script>
 <script src="cpa.js"></script>
 <script src="signup.js"></script>
+
+<!-- TELEGRAM MINI APP SDK -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+<!-- MAIN EARNOVA APP -->
 <script src="app.js"></script>
+
+<!-- ADMIN MODULE -->
 <script src="admin.js"></script>
 
 </body>
